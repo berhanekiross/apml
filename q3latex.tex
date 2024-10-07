@@ -1,0 +1,124 @@
+
+\section*{Q 3.1}
+To compute $p(s_1, s_2|t, y)$, the full conditional distribution of the skills $s_1$ and $s_2$, we start with the Bayesian network from Q2 above, and we apply the results of Gaussian conditional distributions. The variables in the problem are:
+
+\begin{itemize}
+    \item $s_1$: a Gaussian random variable $s_1 \sim \mathcal{N}(\mu_1, \sigma_1^2)$.
+    \item $s_2$: a Gaussian random variable $s_2 \sim \mathcal{N}(\mu_2, \sigma_2^2)$.
+    \item $t$: $t = s_1 - s_2$, a Gaussian random variable $t \sim \mathcal{N}(\mu_1 - \mu_2, \sigma_t^2)$.
+\end{itemize}
+
+We can use Bayes' theorem to find $p(s_1, s_2|t, y)$:
+
+\begin{align*}
+    p(s_1, s_2|t, y) &= \frac{p(s_1, s_2, t, y)}{p(t, y)} = \frac{p(t|y) p(s_1, s_2|t) p(s_1) p(s_2)}{p(t|y) p(y)} \\
+    &= \frac{p(t|s_1, s_2) p(s_1) p(s_2)}{p(t)} \\
+    &= \frac{p(t, s_1, s_2) p(s_1) p(s_2)}{p(s_1, s_2) p(t)} \\
+    &= \frac{p(s_1, s_2|t) p(t) p(s_1) p(s_2)}{p(s_1) p(s_2) p(t)} \\
+    &= p(s_1, s_2|t)
+\end{align*}
+
+We use the Affine transformation corollary (conditioning) to find $p(t|s_1, s_2)$ first:
+
+\begin{align*}
+    p(t|s_1, s_2) &= \mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right) \\
+    &= \mathcal{N}\left(t; \begin{bmatrix} 1 & -1 \end{bmatrix} \begin{bmatrix} s_1 \\ s_2 \end{bmatrix}, \sigma_3^2\right), \text{ where } A = \begin{bmatrix} 1 & -1 \end{bmatrix}, b = 0 \text{ and } \Sigma_{t|s_1, s_2} = \sigma_3^2.
+\end{align*}
+
+Since $s_1$ and $s_2$ are independent:
+
+\[
+\Sigma_{s_1, s_2} = \begin{bmatrix} \sigma_1^2 & 0 \\ 0 & \sigma_2^2 \end{bmatrix}, \quad \mu_{s_1, s_2} = \begin{bmatrix} \mu_1 \\ \mu_2 \end{bmatrix}
+\]
+
+Then:
+
+\[
+p(s_1, s_2|t) = \mathcal{N}\left( \begin{bmatrix} s_1 \\ s_2 \end{bmatrix}; \mu_{s_1, s_2|t}, \Sigma_{s_1, s_2|t} \right)
+\]
+
+\[
+\Sigma_{s_1, s_2|t} = \left( \Sigma_{s_1, s_2}^{-1} + A^T \Sigma_{t|s_1, s_2}^{-1} A \right)^{-1}
+\]
+
+\[
+= \left( \begin{bmatrix} \frac{1}{\sigma_1^2} & 0 \\ 0 & \frac{1}{\sigma_2^2} \end{bmatrix} + \frac{1}{\sigma_3^2} \begin{bmatrix} 1 \\ -1 \end{bmatrix} \begin{bmatrix} 1 & -1 \end{bmatrix} \right)^{-1}
+\]
+
+\[
+= D \begin{bmatrix} 1 + \frac{\sigma_3^2}{\sigma_2^2} & 1 \\ 1 & 1 + \frac{\sigma_3^2}{\sigma_1^2} \end{bmatrix}
+\]
+
+Where:
+
+\[
+D = \frac{1}{\left( \sigma_1^2 + \sigma_3^2 \right) \left( \sigma_2^2 + \sigma_3^2 \right) / \left( \sigma_1^2 \sigma_2^2 \sigma_3^2 \right) - \frac{1}{\sigma_3^2}}
+\]
+
+And:
+
+\[
+\mu_{s_1, s_2|t} = \Sigma_{s_1, s_2|t} \left( \Sigma_{s_1, s_2}^{-1} \mu_{s_1, s_2} + A^T \Sigma_{t|s_1, s_2}^{-1} t \right)
+\]
+
+\[
+\Sigma_{s_1, s_2}^{-1} \mu_{s_1, s_2} + A^T \Sigma_{t|s_1, s_2}^{-1} t = \begin{bmatrix} \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \\ \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \end{bmatrix}
+\]
+
+Substituting $\Sigma_{s_1, s_2|t}$ from above gives:
+
+\[
+\mu_{s_1, s_2|t} = D \begin{bmatrix} \left( 1 + \frac{\sigma_3^2}{\sigma_2^2} \right) \left( \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \right) + \left( \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \right) \\ \left( \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \right) + \left( 1 + \frac{\sigma_3^2}{\sigma_2^2} \right) \left( \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \right) \end{bmatrix}
+\]
+
+\section*{Q 3.2}
+We use Bayes' rule to solve for $p(t|s_1, s_2, y)$ as well:
+
+\begin{align*}
+    p(t|s_1, s_2, y) &= \frac{p(t, s_1, s_2, y)}{p(s_1, s_2, y)} \\
+    &= \frac{p(y|t) p(t|s_1, s_2) p(s_1, s_2)}{p(s_1, s_2, y)} \\
+    &= p(y|t) p(t|s_1, s_2)
+\end{align*}
+
+From above, $p(t|s_1, s_2) = \mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right)$ and from the given problem formulation:
+
+Therefore, $p(t|s_1, s_2, y)$ is a truncated normal distribution:
+
+\[
+p(t|s_1, s_2, y) = \text{TruncatedNormal}(t; s_1 - s_2, \sigma_3^2)
+\]
+
+\[
+= \text{T.N}\left(t; s_1 - s_2, \sigma_3^2\right), \text{ for } [0, +\infty), y = 1
+\]
+
+\[
+= \text{T.N}\left(t; s_1 - s_2, \sigma_3^2\right), \text{ for } [-\infty, 0), y = -1
+\]
+
+Where:
+
+\[
+\mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right) = \frac{1}{\sqrt{2\pi\sigma_3^2}} \exp\left( -\frac{(t - (s_1 - s_2))^2}{2\sigma_3^2} \right)
+\]
+
+\section*{Q 3.3}
+From the definition of $p(y = 1) = p(t > 0)$, using the Affine transformation-marginalization on $p(t|s_1, s_2) = p(s_1, s_2|t) p(t) / p(s_1, s_2)$, we find out that $t$ is Gaussian distributed since both $p(t|s_1, s_2)$ and $p(s_1, s_2)$ are.
+
+\[
+p(t) = \mathcal{N}(t; \mu_1 - \mu_2, \sigma_t^2), \quad \sigma_t^2 = \sigma_1^2 + \sigma_2^2 + \sigma_3^2
+\]
+
+$p(t > 0)$ can then be computed from $p(t > 0) = 1 - p(t \leq 0)$, which can be solved using the cumulative density function of the normal distribution.
+
+The Z-score for $t$ is:
+
+\[
+Z = \frac{t - \mu_t}{\sqrt{\sigma_t^2}}, \quad \text{for } t = 0, \quad Z = \frac{-\mu_t}{\sqrt{\sigma_t^2}}
+\]
+
+\[
+p(t > 0) = 1 - \Phi(Z) = 1 - \Phi\left( -\frac{\mu_1 - \mu_2}{\sqrt{\sigma_1^2 + \sigma_2^2 + \sigma_3^2}} \right)
+\]
+
+\end{document}
