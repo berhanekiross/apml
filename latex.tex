@@ -1,0 +1,202 @@
+\section{Introduction}
+In this project, we implemented a Bayesian method based on the TrueSkill ranking system to estimate players' skills in the Serie A league of 2018/19. We defined a probabilistic model incorporating Gaussian random variables for player skills and match outcomes. Using Gibbs sampling, we computed the posterior distributions of player skills after match results, including handling draws and skill variances. We applied Assumed Density Filtering (ADF) to process a series of matches from the Serie A dataset, leading to a final skill ranking of teams. Predictions were made based on previous match results to see if the ADF model is superior to the random one. In section 10, this is extended to make predictions on the drawn matches.
+
+
+\section*{Q 3.1}
+To compute $p(s_1, s_2|t, y)$, the full conditional distribution of the skills $s_1$ and $s_2$, we start with the Bayesian network from Q2 above, and we apply the results of Gaussian conditional distributions. The variables in the problem are:
+
+\begin{itemize}
+    \item $s_1$: a Gaussian random variable $s_1 \sim \mathcal{N}(\mu_1, \sigma_1^2)$.
+    \item $s_2$: a Gaussian random variable $s_2 \sim \mathcal{N}(\mu_2, \sigma_2^2)$.
+    \item $t$: $t = s_1 - s_2$, a Gaussian random variable $t \sim \mathcal{N}(\mu_1 - \mu_2, \sigma_t^2)$.
+\end{itemize}
+
+We can use Bayes' theorem to find $p(s_1, s_2|t, y)$:
+
+\begin{align*}
+    p(s_1, s_2|t, y) &= \frac{p(s_1, s_2, t, y)}{p(t, y)} = \frac{p(t|y) p(s_1, s_2|t) p(s_1) p(s_2)}{p(t|y) p(y)} \\
+    &= \frac{p(t|s_1, s_2) p(s_1) p(s_2)}{p(t)} \\
+    &= \frac{p(t, s_1, s_2) p(s_1) p(s_2)}{p(s_1, s_2) p(t)} \\
+    &= \frac{p(s_1, s_2|t) p(t) p(s_1) p(s_2)}{p(s_1) p(s_2) p(t)} \\
+    &= p(s_1, s_2|t)
+\end{align*}
+
+We use the Affine transformation corollary (conditioning) to find $p(t|s_1, s_2)$ first:
+
+\begin{align*}
+    p(t|s_1, s_2) &= \mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right) \\
+    &= \mathcal{N}\left(t; \begin{bmatrix} 1 & -1 \end{bmatrix} \begin{bmatrix} s_1 \\ s_2 \end{bmatrix}, \sigma_3^2\right), \text{ where } A = \begin{bmatrix} 1 & -1 \end{bmatrix}, b = 0 \text{ and } \Sigma_{t|s_1, s_2} = \sigma_3^2.
+\end{align*}
+
+Since $s_1$ and $s_2$ are independent:
+
+\[
+\Sigma_{s_1, s_2} = \begin{bmatrix} \sigma_1^2 & 0 \\ 0 & \sigma_2^2 \end{bmatrix}, \quad \mu_{s_1, s_2} = \begin{bmatrix} \mu_1 \\ \mu_2 \end{bmatrix}
+\]
+
+Then:
+
+\[
+p(s_1, s_2|t) = \mathcal{N}\left( \begin{bmatrix} s_1 \\ s_2 \end{bmatrix}; \mu_{s_1, s_2|t}, \Sigma_{s_1, s_2|t} \right)
+\]
+
+\[
+\Sigma_{s_1, s_2|t} = \left( \Sigma_{s_1, s_2}^{-1} + A^T \Sigma_{t|s_1, s_2}^{-1} A \right)^{-1}
+\]
+
+\[
+= \left( \begin{bmatrix} \frac{1}{\sigma_1^2} & 0 \\ 0 & \frac{1}{\sigma_2^2} \end{bmatrix} + \frac{1}{\sigma_3^2} \begin{bmatrix} 1 \\ -1 \end{bmatrix} \begin{bmatrix} 1 & -1 \end{bmatrix} \right)^{-1}
+\]
+
+\[
+= D \begin{bmatrix} 1 + \frac{\sigma_3^2}{\sigma_2^2} & 1 \\ 1 & 1 + \frac{\sigma_3^2}{\sigma_1^2} \end{bmatrix}
+\]
+
+Where:
+
+\[
+D = \frac{1}{\left( \sigma_1^2 + \sigma_3^2 \right) \left( \sigma_2^2 + \sigma_3^2 \right) / \left( \sigma_1^2 \sigma_2^2 \sigma_3^2 \right) - \frac{1}{\sigma_3^2}}
+\]
+
+And:
+
+\[
+\mu_{s_1, s_2|t} = \Sigma_{s_1, s_2|t} \left( \Sigma_{s_1, s_2}^{-1} \mu_{s_1, s_2} + A^T \Sigma_{t|s_1, s_2}^{-1} t \right)
+\]
+
+\[
+\Sigma_{s_1, s_2}^{-1} \mu_{s_1, s_2} + A^T \Sigma_{t|s_1, s_2}^{-1} t = \begin{bmatrix} \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \\ \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \end{bmatrix}
+\]
+
+Substituting $\Sigma_{s_1, s_2|t}$ from above gives:
+
+\[
+\mu_{s_1, s_2|t} = D \begin{bmatrix} \left( 1 + \frac{\sigma_3^2}{\sigma_2^2} \right) \left( \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \right) + \left( \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \right) \\ \left( \frac{\mu_1}{\sigma_1^2} + \frac{t}{\sigma_3^2} \right) + \left( 1 + \frac{\sigma_3^2}{\sigma_2^2} \right) \left( \frac{\mu_2}{\sigma_2^2} - \frac{t}{\sigma_3^2} \right) \end{bmatrix}
+\]
+
+\section*{Q 3.2}
+We use Bayes' rule to solve for $p(t|s_1, s_2, y)$ as well:
+
+\begin{align*}
+    p(t|s_1, s_2, y) &= \frac{p(t, s_1, s_2, y)}{p(s_1, s_2, y)} \\
+    &= \frac{p(y|t) p(t|s_1, s_2) p(s_1, s_2)}{p(s_1, s_2, y)} \\
+    &= p(y|t) p(t|s_1, s_2)
+\end{align*}
+
+From above, $p(t|s_1, s_2) = \mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right)$ and from the given problem formulation:
+
+Therefore, $p(t|s_1, s_2, y)$ is a truncated normal distribution:
+
+\[
+p(t|s_1, s_2, y) = \text{TruncatedNormal}(t; s_1 - s_2, \sigma_3^2)
+\]
+
+\[
+= \text{T.N}\left(t; s_1 - s_2, \sigma_3^2\right), \text{ for } [0, +\infty), y = 1
+\]
+
+\[
+= \text{T.N}\left(t; s_1 - s_2, \sigma_3^2\right), \text{ for } [-\infty, 0), y = -1
+\]
+
+Where:
+
+\[
+\mathcal{N}\left(t; s_1 - s_2, \sigma_3^2\right) = \frac{1}{\sqrt{2\pi\sigma_3^2}} \exp\left( -\frac{(t - (s_1 - s_2))^2}{2\sigma_3^2} \right)
+\]
+
+\section*{Q 3.3}
+From the definition of $p(y = 1) = p(t > 0)$, using the Affine transformation-marginalization on $p(t|s_1, s_2) = p(s_1, s_2|t) p(t) / p(s_1, s_2)$, we find out that $t$ is Gaussian distributed since both $p(t|s_1, s_2)$ and $p(s_1, s_2)$ are.
+
+\[
+p(t) = \mathcal{N}(t; \mu_1 - \mu_2, \sigma_t^2), \quad \sigma_t^2 = \sigma_1^2 + \sigma_2^2 + \sigma_3^2
+\]
+
+$p(t > 0)$ can then be computed from $p(t > 0) = 1 - p(t \leq 0)$, which can be solved using the cumulative density function of the normal distribution.
+
+The Z-score for $t$ is:
+
+\[
+Z = \frac{t - \mu_t}{\sqrt{\sigma_t^2}}, \quad \text{for } t = 0, \quad Z = \frac{-\mu_t}{\sqrt{\sigma_t^2}}
+\]
+
+\[
+p(t > 0) = 1 - \Phi(Z) = 1 - \Phi\left( -\frac{\mu_1 - \mu_2}{\sqrt{\sigma_1^2 + \sigma_2^2 + \sigma_3^2}} \right)
+\]
+
+\section*{Q5}
+We applied Assumed Density Filtering (ADF) with Gibbs sampling to estimate the skills of Serie A teams that won the matches. Initial skill levels ($\mu_1 = \mu_2$) of 25, variances ($\sigma_1^2 = \sigma_2^2$) of $\frac{25}{3}$, and variance of the likelihood of a match's outcome given the two skills ($\sigma_3^2$) of $\frac{25}{6}$ were assigned. After processing all the matches in the original dataset order, Juventus had the highest mean skill at 29.22, followed by Napoli at 27.67, and Milan at 27.10. The corresponding skill variances were 1.27, 0.91, and 1.04, showing that they dropped significantly from the initially assigned values due to the large dataset size. Teams like Chievo and Frosinone sat at the bottom of the table, with mean skills of 20.01 and 21.67, respectively. The variances were 1.36 and 1.54, respectively. The rankings can be seen in Table \ref{table:skills1}.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Team} & \textbf{Mean Skill} & \textbf{Variance} \\
+\hline
+Juventus & 29.22 & 1.27 \\
+Napoli & 27.67 & 0.91 \\
+Milan & 27.10 & 1.04 \\
+Roma & 27.08 & 1.28 \\
+Atalanta & 26.98 & 1.12 \\
+Torino & 26.86 & 1.05 \\
+Inter & 26.83 & 1.11 \\
+Lazio & 25.71 & 1.08 \\
+Sampdoria & 25.21 & 1.04 \\
+Bologna & 24.40 & 1.06 \\
+Spal & 23.99 & 1.22 \\
+Fiorentina & 23.90 & 1.20 \\
+Parma & 23.76 & 0.85 \\
+Cagliari & 23.70 & 1.18 \\
+Empoli & 23.64 & 0.86 \\
+Sassuolo & 23.61 & 1.62 \\
+Udinese & 23.60 & 1.00 \\
+Genoa & 23.49 & 1.13 \\
+Frosinone & 21.67 & 1.54 \\
+Chievo & 20.01 & 1.36 \\
+\hline
+\end{tabular}
+\caption{Skill levels and variances at the end of the season, no shuffle.}
+\label{table:skills1}
+\end{table}
+
+Reshuffling the dataset once before the analysis gives different rankings as well as skill metrics at the end of the season. The top three and bottom two teams maintained the same position during every run of the code (up to six times), but the remaining teams had different positions when the analysis was done on the dataset in its original order. The mean skill levels and variances were altered for all teams, as seen in Table \ref{table:skills2}.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Team} & \textbf{Mean Skill} & \textbf{Variance} \\
+\hline
+Juventus & 28.89 & 1.20 \\
+Napoli & 27.73 & 0.94 \\
+Milan & 26.89 & 1.18 \\
+Torino & 26.78 & 1.54 \\
+Roma & 26.76 & 1.17 \\
+Inter & 26.73 & 0.98 \\
+Atalanta & 26.32 & 1.19 \\
+Lazio & 25.91 & 1.06 \\
+Sampdoria & 24.97 & 1.04 \\
+Sassuolo & 24.35 & 1.60 \\
+Bologna & 24.24 & 0.81 \\
+Spal & 23.83 & 0.91 \\
+Udinese & 23.69 & 1.40 \\
+Parma & 23.57 & 1.18 \\
+Fiorentina & 23.54 & 1.20 \\
+Genoa & 23.42 & 1.64 \\
+Empoli & 23.41 & 0.92 \\
+Cagliari & 23.05 & 1.50 \\
+Frosinone & 21.22 & 1.28 \\
+Chievo & 20.22 & 1.64 \\
+\hline
+\end{tabular}
+\caption{Skill levels and variances at the end of the season, after shuffling the dataset once.}
+\label{table:skills2}
+\end{table}
+
+Shuffling the dataset alters the results because ADF updates the prior skill estimates sequentially, using the posterior of one match as the prior for the next. The order of matches influences how the skills evolve during this process. Since the Gibbs sampler updates team skills based on each match outcome, the sequence in which these matches are processed can lead to different intermediate skill estimates, which, in turn, affects the final rankings. Shuffling changes this sequence, introducing variation in skill updates across different runs.
+
+\section*{Q6}
+The win/loss prediction was introduced to the ADF model. Once again, drawn matches were excluded from the analysis. The accuracy of the model was found to be 67\%, which is better than the random predictor (47\%—which is close, but could have been much closer to 50\% with a larger dataset).
+
+
+\end{document}
